@@ -6,6 +6,7 @@ module.exports = [
     options: {
       tsDocgenLoaderOptions: {
         tsconfigPath: path.resolve(__dirname, '../tsconfig.json'),
+        shouldExtractLiteralValuesFromEnum: true,
       },
     },
   },
