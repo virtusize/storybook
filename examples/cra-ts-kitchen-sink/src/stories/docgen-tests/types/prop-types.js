@@ -23,6 +23,10 @@ class ClassComponent extends React.PureComponent {
   }
 }
 
+function concat(a, b) {
+  return a + b;
+}
+
 export const PropTypesProps = () => <div>PropTypes!</div>;
 
 PropTypesProps.propTypes = {
@@ -31,6 +35,15 @@ PropTypesProps.propTypes = {
   bool: PropTypes.bool,
   string: PropTypes.string,
   func: PropTypes.func,
+  /**
+   * A function with JSDoc tags.
+   *
+   * @param {string} foo - A foo value.
+   * @param {number} bar - A bar value.
+   * @returns {ComplexObject} - Returns a complex object.
+   */
+  funcWithJsDoc: PropTypes.func,
+  namedDefaultFunc: PropTypes.func,
   number: PropTypes.number,
   /**
    * Plain object propType (use shape!!)
@@ -104,6 +117,7 @@ PropTypesProps.propTypes = {
       ),
     })
   ),
+  namedObjectOf: PropTypes.objectOf(NAMED_SHAPE),
   /**
    * propType for shape with nested arrayOf
    *
@@ -158,6 +172,10 @@ PropTypesProps.defaultProps = {
   bool: false,
   string: 'Default string',
   func: () => {},
+  funcWithJsDoc: (foo, bar) => {
+    return { foo, bar };
+  },
+  namedDefaultFunc: concat,
   number: 5,
   obj: {
     key: 'value',
@@ -195,6 +213,7 @@ PropTypesProps.defaultProps = {
       },
     },
   },
+  namedObjectOf: { text: 'foo', value: 'bar' },
   namedShape: { text: 'foo', value: 'bar' },
   exact: { name: 'foo', quantity: 2 },
   namedExact: { text: 'foo', value: 'bar' },
