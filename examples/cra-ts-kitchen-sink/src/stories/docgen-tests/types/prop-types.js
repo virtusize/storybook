@@ -7,6 +7,12 @@ const ITEM_SHAPE = {
   value: PropTypes.string.isRequired,
 };
 
+const TOP_LEFT = 'top-left';
+const TOP_RIGHT = 'top-right';
+const TOP_CENTER = 'top-center';
+
+export const POSITIONS = [TOP_LEFT, TOP_RIGHT, TOP_CENTER];
+
 export const PropTypesProps = () => <div>PropTypes!</div>;
 
 PropTypesProps.propTypes = {
@@ -16,9 +22,11 @@ PropTypesProps.propTypes = {
     text: string.isRequired,
     value: string.isRequired,
   }).isRequired,
+  oneOf: PropTypes.oneOf(POSITIONS),
 };
 
 PropTypesProps.defaultProps = {
   arrayOfPrimitive: ['foo', 'bar'],
   arrayOfShape: [{ text: 'foo', value: 'bar' }],
+  oneOf: TOP_RIGHT,
 };
