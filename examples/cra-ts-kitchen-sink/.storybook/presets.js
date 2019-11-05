@@ -8,7 +8,6 @@ module.exports = [
         tsconfigPath: path.resolve(__dirname, '../tsconfig.json'),
         shouldExtractLiteralValuesFromEnum: true,
       },
-      // tstsDocgenLoaderOptions: null,
     },
   },
   '@storybook/addon-docs/react/preset',
