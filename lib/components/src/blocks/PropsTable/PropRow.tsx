@@ -3,20 +3,20 @@ import Markdown from 'markdown-to-jsx';
 import { styled } from '@storybook/theming';
 import { transparentize } from 'polished';
 import { isNil } from 'lodash';
-import { PropDef, PropDefJsDocTags } from './PropDef';
+import { PropDef, PropDefJsDocTags, PropTypeSystem } from './PropDef';
 
-enum PropType {
-  SHAPE = 'shape',
-  UNION = 'union',
-  ARRAYOF = 'arrayOf',
-  OBJECTOF = 'objectOf',
-  ENUM = 'enum',
-  INSTANCEOF = 'instanceOf',
-}
+// enum PropType {
+//   SHAPE = 'shape',
+//   UNION = 'union',
+//   ARRAYOF = 'arrayOf',
+//   OBJECTOF = 'objectOf',
+//   ENUM = 'enum',
+//   INSTANCEOF = 'instanceOf',
+// }
 
-interface PrettyPropTypeProps {
-  type: any;
-}
+// interface PrettyPropTypeProps {
+//   type: any;
+// }
 
 interface PrettyPropValProps {
   value: any;
@@ -61,51 +61,144 @@ const JsDocDescCell = styled.td({
   width: 'auto !important',
 });
 
-const prettyPrint = (type: any): string => {
-  if (!type || !type.name) {
+interface PropTypesType {
+  name: string;
+  value?: any;
+  computed?: boolean;
+  raw?: string;
+}
+
+interface TypeScriptType {
+  name: string;
+}
+
+interface UnsupportedType {
+  name: string;
+}
+
+type TypeRenderer = (type: any) => string;
+
+interface PropRenderers {
+  type: TypeRenderer;
+}
+
+const propTypesTypeRenderer: TypeRenderer = (type: PropTypesType) => {
+  if (isNil(type) || isNil(type.name)) {
     return '';
   }
-  let fields = '';
+
   switch (type.name) {
-    case PropType.SHAPE:
-      fields = Object.keys(type.value)
-        .map((key: string) => `${key}: ${prettyPrint(type.value[key])}`)
-        .join(', ');
-      return `{ ${fields} }`;
-    case PropType.UNION:
-      return Array.isArray(type.value)
-        ? `Union<${type.value.map(prettyPrint).join(' | ')}>`
-        : JSON.stringify(type.value);
-    case PropType.ARRAYOF: {
-      let shape = type.value.name;
-
-      if (shape === 'custom') {
-        if (type.value.raw) {
-          shape = type.value.raw.replace(/PropTypes./g, '').replace(/.isRequired/g, '');
-        }
+    case 'custom':
+      // TODO: raw might be a long stringify function, what do we do?
+      // If it's a name function it's fine,
+      // If it's something that contains "function" or "(" or "{" or "\n" or longuer than X characters we want to show "custom".
+      // Could use something to generate an AST from a string. (Also do this for defaultValue);
+      return isNil(type.raw) ? type.name : type.raw;
+    case 'instanceOf':
+      return type.value;
+    case 'enum':
+      if (Array.isArray(type.value)) {
+        return type.value.map((x: any) => x.value).join(' | ');
       }
 
-      return `[ ${shape} ]`;
-    }
-    case PropType.OBJECTOF:
-      return `objectOf(${prettyPrint(type.value)})`;
-    case PropType.ENUM:
-      if (type.computed) {
-        return JSON.stringify(type);
-      }
-      return Array.isArray(type.value)
-        ? type.value.map((v: any) => v && v.value && v.value.toString()).join(' | ')
-        : JSON.stringify(type);
-    case PropType.INSTANCEOF:
-      return `instanceOf(${JSON.stringify(type.value)})`;
+      return type.value;
     default:
       return type.name;
   }
 };
 
-export const PrettyPropType: FC<PrettyPropTypeProps> = ({ type }) => (
-  <span>{prettyPrint(type)}</span>
-);
+const typeScriptTypeRenderer: TypeRenderer = (type: TypeScriptType) => {
+  if (isNil(type) || isNil(type.name)) {
+    return '';
+  }
+
+  // TODO: Need more work, for example: unionOfPrimitive doesn't work.
+  return type.name;
+};
+
+const unsupportedTypeRenderer: TypeRenderer = (type: UnsupportedType) => {
+  if (isNil(type) || isNil(type.name)) {
+    return '';
+  }
+
+  return type.name;
+};
+
+const TypeSystemRenderer: Record<PropTypeSystem, PropRenderers> = {
+  [PropTypeSystem.PropTypes]: {
+    type: propTypesTypeRenderer,
+  },
+  [PropTypeSystem.TypeScript]: {
+    type: typeScriptTypeRenderer,
+  },
+  [PropTypeSystem.Flow]: {
+    type: unsupportedTypeRenderer,
+  },
+  [PropTypeSystem.Unknown]: {
+    type: unsupportedTypeRenderer,
+  },
+};
+
+export function renderType(propDef: PropDef): string {
+  // console.log('**** ', propDef);
+
+  try {
+    const renderer = TypeSystemRenderer[propDef.typeSystem];
+
+    return renderer.type(propDef.type);
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+
+    return 'unknown';
+  }
+}
+
+// const renderType = (type: any): string => {
+//   if (!type || !type.name) {
+//     return '';
+//   }
+//   let fields = '';
+//   switch (type.name) {
+//     case PropType.SHAPE:
+//       fields = Object.keys(type.value)
+//         .map((key: string) => `${key}: ${renderType(type.value[key])}`)
+//         .join(', ');
+//       return `{ ${fields} }`;
+//     case PropType.UNION:
+//       return Array.isArray(type.value)
+//         ? type.value.map(renderType).join(' | ')
+//         : JSON.stringify(type.value);
+//     case PropType.ARRAYOF: {
+//       let shape = type.value.name;
+
+//       if (shape === 'custom') {
+//         if (type.value.raw) {
+//           shape = type.value.raw.replace(/PropTypes./g, '').replace(/.isRequired/g, '');
+//         }
+//       }
+
+//       return `[ ${shape} ]`;
+//     }
+//     case PropType.OBJECTOF:
+//       return `objectOf(${renderType(type.value)})`;
+//     case PropType.ENUM:
+//       if (type.computed) {
+//         return JSON.stringify(type);
+//       }
+//       return Array.isArray(type.value)
+//         ? type.value.map((v: any) => v && v.value && v.value.toString()).join(' | ')
+//         : JSON.stringify(type);
+//     case PropType.INSTANCEOF:
+//       return JSON.stringify(type.value);
+//     default:
+//       return type.name;
+//   }
+// };
+
+// export const PrettyPropType: FC<PrettyPropTypeProps> = ({ type }) => (
+//   <span>{renderType(type)}</span>
+// );
 
 export const PrettyPropVal: FC<PrettyPropValProps> = ({ value }) => (
   <span>{JSON.stringify(value)}</span>
@@ -149,21 +242,23 @@ const JsDocParamsAndReturns: FC<JsDocParamsAndReturnsProps> = ({ tags }) => {
   );
 };
 
-export const PropRow: FC<PropRowProps> = ({
-  row: { name, type, required, description, defaultValue, jsDocTags },
-}) => (
-  <tr>
-    <td>
-      <Name>{name}</Name>
-      {required ? <Required title="Required">*</Required> : null}
-    </td>
-    <td>
-      <Markdown>{description || ''}</Markdown>
-      <StyledPropDef>
-        <PrettyPropType type={type} />
-      </StyledPropDef>
-      <JsDocParamsAndReturns tags={jsDocTags} />
-    </td>
-    <td>{isNil(defaultValue) ? '-' : <PrettyPropVal value={defaultValue} />}</td>
-  </tr>
-);
+export const PropRow: FC<PropRowProps> = ({ row }) => {
+  const { name, type, required, description, defaultValue, jsDocTags } = row;
+
+  return (
+    <tr>
+      <td>
+        <Name>{name}</Name>
+        {required ? <Required title="Required">*</Required> : null}
+      </td>
+      <td>
+        <Markdown>{description || ''}</Markdown>
+        <StyledPropDef>
+          <span>{renderType(row)}</span>
+        </StyledPropDef>
+        <JsDocParamsAndReturns tags={jsDocTags} />
+      </td>
+      <td>{isNil(defaultValue) ? '-' : <PrettyPropVal value={defaultValue} />}</td>
+    </tr>
+  );
+};

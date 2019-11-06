@@ -1,14 +1,7 @@
-import { PropDef } from '@storybook/components';
+import { PropDef, PropTypeSystem } from '@storybook/components';
 import { isNil } from 'lodash';
 import { parseJsDoc, ExtractedJsDocTags, ExtractedJsDocParamTag } from './jsdoc-parser';
 import { DocgenInfo } from './DocgenInfo';
-
-export const TypeSystem = {
-  Flow: 'Flow',
-  TypeScript: 'TypeScript',
-  PropTypes: 'PropTypes',
-  Unknown: 'Unknown',
-};
 
 export interface TypeSystemHandlerResult {
   propDef?: PropDef;
@@ -25,20 +18,22 @@ interface HandlePropResult extends TypeSystemHandlerResult {
 }
 
 function createDefaultPropDef(
-  propName: string,
-  propType: {
+  name: string,
+  type: {
     name: string;
   },
+  typeSystem: PropTypeSystem,
   docgenInfo: DocgenInfo
 ): PropDef {
   const { description, required, defaultValue } = docgenInfo;
 
   return {
-    name: propName,
-    type: propType,
+    name,
+    type,
     required,
     description,
     defaultValue: isNil(defaultValue) ? null : defaultValue.value,
+    typeSystem,
   };
 }
 
@@ -47,13 +42,14 @@ function propMightContainsJsDoc(docgenInfo: DocgenInfo): boolean {
 }
 
 function handleProp(
-  propName: string,
-  propType: {
+  name: string,
+  type: {
     name: string;
   },
+  typeSystem: PropTypeSystem,
   docgenInfo: DocgenInfo
 ): HandlePropResult {
-  const propDef = createDefaultPropDef(propName, propType, docgenInfo);
+  const propDef = createDefaultPropDef(name, type, typeSystem, docgenInfo);
 
   if (propMightContainsJsDoc(docgenInfo)) {
     const { ignore, description, extractedTags } = parseJsDoc(docgenInfo);
@@ -92,7 +88,7 @@ function handleProp(
 }
 
 export const propTypesHandler: TypeSystemHandler = (propName: string, docgenInfo: DocgenInfo) => {
-  const result = handleProp(propName, docgenInfo.type, docgenInfo);
+  const result = handleProp(propName, docgenInfo.type, PropTypeSystem.PropTypes, docgenInfo);
 
   if (!result.ignore) {
     const { propDef, extractedJsDocTags } = result;
@@ -139,40 +135,40 @@ export const propTypesHandler: TypeSystemHandler = (propName: string, docgenInfo
 };
 
 export const tsHandler: TypeSystemHandler = (propName: string, docgenInfo: DocgenInfo) => {
-  return handleProp(propName, docgenInfo.tsType, docgenInfo);
+  return handleProp(propName, docgenInfo.tsType, PropTypeSystem.TypeScript, docgenInfo);
 };
 
 export const flowHandler: TypeSystemHandler = (propName: string, docgenInfo: DocgenInfo) => {
-  return handleProp(propName, docgenInfo.flowType, docgenInfo);
+  return handleProp(propName, docgenInfo.flowType, PropTypeSystem.Flow, docgenInfo);
 };
 
 export const unknownHandler: TypeSystemHandler = (propName: string, docgenInfo: DocgenInfo) => {
-  return handleProp(propName, { name: 'unknown' }, docgenInfo);
+  return handleProp(propName, { name: 'unknown' }, PropTypeSystem.Unknown, docgenInfo);
 };
 
-export const TypeSystemHandlers: Record<string, TypeSystemHandler> = {
-  [TypeSystem.Flow]: flowHandler,
-  [TypeSystem.TypeScript]: tsHandler,
-  [TypeSystem.PropTypes]: propTypesHandler,
-  [TypeSystem.Unknown]: unknownHandler,
+export const TypeSystemHandlers: Record<PropTypeSystem, TypeSystemHandler> = {
+  [PropTypeSystem.Flow]: flowHandler,
+  [PropTypeSystem.TypeScript]: tsHandler,
+  [PropTypeSystem.PropTypes]: propTypesHandler,
+  [PropTypeSystem.Unknown]: unknownHandler,
 };
 
-export const getPropTypeSystem = (docgenInfo: DocgenInfo): string => {
+export const getPropTypeSystem = (docgenInfo: DocgenInfo): PropTypeSystem => {
   if (!isNil(docgenInfo.flowType)) {
-    return TypeSystem.Flow;
+    return PropTypeSystem.Flow;
   }
 
   if (!isNil(docgenInfo.tsType)) {
-    return TypeSystem.TypeScript;
+    return PropTypeSystem.TypeScript;
   }
 
   if (!isNil(docgenInfo.type)) {
-    return TypeSystem.PropTypes;
+    return PropTypeSystem.PropTypes;
   }
 
-  return TypeSystem.Unknown;
+  return PropTypeSystem.Unknown;
 };
 
-export const getTypeSystemHandler = (typeSystem: string): TypeSystemHandler => {
+export const getTypeSystemHandler = (typeSystem: PropTypeSystem): TypeSystemHandler => {
   return TypeSystemHandlers[typeSystem];
 };

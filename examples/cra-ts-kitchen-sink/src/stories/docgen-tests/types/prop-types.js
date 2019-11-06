@@ -7,11 +7,12 @@ const NAMED_SHAPE = {
   value: PropTypes.string.isRequired,
 };
 
-const TOP_LEFT = 'top-left';
-const TOP_RIGHT = 'top-right';
-const TOP_CENTER = 'top-center';
+const ANOTHER_SHAPE = {
+  foo: PropTypes.string,
+  bar: PropTypes.string,
+};
 
-export const POSITIONS = [TOP_LEFT, TOP_RIGHT, TOP_CENTER];
+export const POSITIONS = ['top-left', 'top-right', 'top-center'];
 
 const FunctionalComponent = () => {
   return <div>FunctionnalComponent!</div>;
@@ -62,9 +63,16 @@ PropTypesProps.propTypes = {
   /**
    * `oneOf` is basically an Enum which is also supported but can be pretty big.
    */
-  oneOf: PropTypes.oneOf(['News', 'Photos']),
+  oneOfString: PropTypes.oneOf(['News', 'Photos']),
+  oneOfNumeric: PropTypes.oneOf([0, 1, 2, 3]),
+  oneOfComplexType: PropTypes.oneOf([NAMED_SHAPE, ANOTHER_SHAPE]),
+  oneOfComponents: PropTypes.oneOf([FunctionalComponent, ClassComponent]),
   oneOfEval: PropTypes.oneOf((() => ['News', 'Photos'])()),
   oneOfVar: PropTypes.oneOf(POSITIONS),
+  oneOfNested: PropTypes.oneOf([
+    'News',
+    [POSITIONS, ['bottom-left', 'botton-center', 'bottom-right']],
+  ]),
   /**
    *  A multi-type prop is also valid and is displayed as `Union<String|Message>`
    */
@@ -187,9 +195,13 @@ PropTypesProps.defaultProps = {
   functionalElementType: FunctionalComponent,
   classElementType: ClassComponent,
   instanceOf: new Set(),
-  oneOf: 'News',
+  oneOfString: 'News',
+  oneOfNumeric: 1,
+  oneOfComplexType: { text: 'foo', value: 'bar' },
+  oneOfComponents: <FunctionalComponent />,
   oneOfEval: 'Photos',
-  oneOfVar: TOP_RIGHT,
+  oneOfVar: 'top-right',
+  oneOfNested: 'top-right',
   oneOfType: 'hello',
   arrayOfPrimitive: [1, 2, 3],
   arrayOfNamedShape: [{ text: 'foo', value: 'bar' }],
