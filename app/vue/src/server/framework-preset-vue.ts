@@ -13,7 +13,7 @@ export function webpack(config: Configuration) {
       extensions: [...config.resolve.extensions],
       alias: {
         ...config.resolve.alias,
-        vue$: require.resolve('vue/dist/vue.esm.js'),
+        vue$: require.resolve('vue/dist/vue.esm-browser.js'),
       },
     },
   };

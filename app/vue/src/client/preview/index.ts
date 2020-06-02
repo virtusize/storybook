@@ -1,5 +1,5 @@
 /* eslint-disable prefer-destructuring */
-import Vue, { VueConstructor, ComponentOptions } from 'vue';
+import Vue, { Component, ComponentOptionsWithoutProps, defineComponent, h } from 'vue';
 import { start } from '@storybook/core/client';
 import {
   ClientStoryApi,
@@ -19,14 +19,14 @@ export const WRAPS = 'STORYBOOK_WRAPS';
 
 function prepare(
   rawStory: StoryFnVueReturnType,
-  innerStory?: VueConstructor
-): VueConstructor | null {
-  let story: ComponentOptions<Vue> | VueConstructor;
+  innerStory?: Component
+): Component | null {
+  let story: ComponentOptionsWithoutProps;
 
   if (typeof rawStory === 'string') {
     story = { template: rawStory };
   } else if (rawStory != null) {
-    story = rawStory as ComponentOptions<Vue>;
+    story = rawStory as ComponentOptionsWithoutProps;
   } else {
     return null;
   }
@@ -37,19 +37,19 @@ function prepare(
     if (innerStory) {
       story.components = { ...(story.components || {}), story: innerStory };
     }
-    story = Vue.extend(story);
+    story = defineComponent(story);
     // @ts-ignore // https://github.com/storybookjs/storybook/pull/7578#discussion_r307984824
   } else if (story.options[WRAPS]) {
-    return story as VueConstructor;
+    return story as Component;
   }
 
-  return Vue.extend({
+  return defineComponent({
     // @ts-ignore // https://github.com/storybookjs/storybook/pull/7578#discussion_r307985279
     [WRAPS]: story,
     // @ts-ignore // https://github.com/storybookjs/storybook/pull/7578#discussion_r307984824
     [VALUES]: { ...(innerStory ? innerStory.options[VALUES] : {}), ...extractProps(story) },
     functional: true,
-    render(h, { data, parent, children }) {
+    render(h: any, { data, parent, children }: any) {
       return h(
         story,
         {
@@ -72,10 +72,10 @@ const defaultContext: StoryContext = {
 
 function decorateStory(
   storyFn: StoryFn<StoryFnVueReturnType>,
-  decorators: DecoratorFunction<VueConstructor>[]
-): StoryFn<VueConstructor> {
+  decorators: DecoratorFunction<Component>[]
+): StoryFn<Component> {
   return decorators.reduce(
-    (decorated: StoryFn<VueConstructor>, decorator) => (context: StoryContext = defaultContext) => {
+    (decorated: StoryFn<Component>, decorator) => (context: StoryContext = defaultContext) => {
       let story;
 
       const decoratedStory = decorator(p => {

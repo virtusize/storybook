@@ -1,22 +1,35 @@
 import dedent from 'ts-dedent';
-import Vue from 'vue';
+import { createApp, Component, ComponentOptionsWithoutProps, defineComponent, h, PropType } from 'vue';
 import { RenderMainArgs } from './types';
 
 export const COMPONENT = 'STORYBOOK_COMPONENT';
 export const VALUES = 'STORYBOOK_VALUES';
 
-const root = new Vue({
-  data() {
-    return {
-      [COMPONENT]: undefined,
-      [VALUES]: {},
-    };
+const app = defineComponent({
+  // data() {
+  //   return {
+  //     [COMPONENT]: undefined,
+  //     [VALUES]: {},
+  //   };
+  // },
+  props: {
+    [COMPONENT]: {
+      type: Object as PropType<Component>,
+      value: () => {},
+    },
+    [VALUES]: {
+      type: Object,
+      value: () => {},
+    },
   },
-  render(h) {
-    const children = this[COMPONENT] ? [h(this[COMPONENT])] : undefined;
-    return h('div', { attrs: { id: 'root' } }, children);
+  render(props: any) {
+    console.log(props[COMPONENT]);
+    const children = props[COMPONENT] ? [h(props[COMPONENT])] : undefined;
+    return h('div', { id: 'app' }, children);
   },
 });
+
+const root = createApp(app, {});
 
 export default function render({
   storyFn,
@@ -27,7 +40,7 @@ export default function render({
   showException,
   forceRender,
 }: RenderMainArgs) {
-  Vue.config.errorHandler = showException;
+  root.config.errorHandler = showException;
 
   const element = storyFn();
 
@@ -45,14 +58,17 @@ export default function render({
   showMain();
 
   // at component creation || refresh by HMR
-  if (!root[COMPONENT] || !forceRender) {
-    root[COMPONENT] = element;
+  // if (!app[COMPONENT] || !forceRender) {
+  //   app[COMPONENT] = element;
+  // }
+
+  if (!root._component.props[COMPONENT] || !forceRender) {
+    // app.props[COMPONENT] = element as any;
+    root._props[COMPONENT] = element as any;
   }
 
   // @ts-ignore https://github.com/storybookjs/storybook/pull/7578#discussion_r307986139
-  root[VALUES] = element.options[VALUES];
+  root._component.props[VALUES] = element[VALUES];
 
-  if (!root.$el) {
-    root.$mount('#root');
-  }
+  root.mount("#root");
 }
